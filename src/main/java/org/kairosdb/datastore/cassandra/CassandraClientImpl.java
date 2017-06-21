@@ -15,6 +15,7 @@ import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.reporting.KairosMetricReporter;
+import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,7 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 {
 	public static final String KEYSPACE_PROPERTY = "kairosdb.datastore.cassandra.keyspace";
 	public static final String HOST_LIST_PROPERTY = "kairosdb.datastore.cassandra.cql_host_list";
-
+	public static final String ADDRESS_TRANSLATOR_MAP = "kairosdb.datastore.cassandra.address_translator_map";
 
 	private final Cluster m_cluster;
 	private String m_keyspace;
@@ -44,7 +45,8 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 
 	@Inject
 	public CassandraClientImpl(@Named(KEYSPACE_PROPERTY)String keyspace,
-			@Named(HOST_LIST_PROPERTY)String hostList)
+			@Named(HOST_LIST_PROPERTY)String hostList,
+			@Named(ADDRESS_TRANSLATOR_MAP)String addressTranslatorMap) throws JSONException
 	{
 		//Passing shuffleReplicas = false so we can properly batch data to
 		//instances.
@@ -68,10 +70,17 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 					}
 				});
 
+		if(addressTranslatorMap.length() > 0) {
+    		MapAddressTranslator translator = new MapAddressTranslator();
+    		translator.setMap(addressTranslatorMap);
 
-		for (String node : hostList.split(","))
-		{
-			builder.addContactPoint(node.split(":")[0]);
+    		builder.addContactPointsWithPorts(translator.getContactPoints());
+    		builder.withAddressTranslator(translator);
+		} else {
+    		for (String node : hostList.split(","))
+    		{
+    			builder.addContactPoint(node.split(":")[0]);
+    		}
 		}
 
 		m_cluster = builder.build();
