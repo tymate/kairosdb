@@ -18,6 +18,7 @@ import org.kairosdb.core.reporting.KairosMetricReporter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  Created by bhawkins on 3/4/15.
@@ -44,7 +45,8 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 
 	@Inject
 	public CassandraClientImpl(@Named(KEYSPACE_PROPERTY)String keyspace,
-			@Named(HOST_LIST_PROPERTY)String hostList)
+			@Named(HOST_LIST_PROPERTY)String hostList,
+			CassandraConfiguration config)
 	{
 		//Passing shuffleReplicas = false so we can properly batch data to
 		//instances.
@@ -72,6 +74,11 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 		for (String node : hostList.split(","))
 		{
 			builder.addContactPoint(node.split(":")[0]);
+		}
+
+		Map<String, String> auth = config.getCassandraAuthentication();
+		if(auth.containsKey("username") && auth.containsKey("password")) {
+    		builder.withCredentials(auth.get("username"), auth.get("password"));
 		}
 
 		m_cluster = builder.build();
