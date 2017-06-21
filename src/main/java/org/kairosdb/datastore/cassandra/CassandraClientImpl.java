@@ -18,6 +18,7 @@ import org.kairosdb.core.reporting.KairosMetricReporter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.net.InetSocketAddress;
 
 /**
  Created by bhawkins on 3/4/15.
@@ -71,7 +72,14 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 
 		for (String node : hostList.split(","))
 		{
-			builder.addContactPoint(node.split(":")[0]);
+    		String[] hostPort = node.split(":");
+    		if(hostPort.length > 1) {
+    			builder.addContactPointsWithPorts(
+        			new InetSocketAddress(hostPort[0], Integer.parseInt(hostPort[1]))
+    			);
+    		} else {
+    			builder.addContactPoint(hostPort[0]);
+    		}
 		}
 
 		m_cluster = builder.build();
